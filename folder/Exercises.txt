@@ -1,0 +1,87 @@
+#EXERCISE 1
+
+library(mlbench)	#Load mlbench package
+data(Ozone)			#Load the dataset
+str(Ozone)			#See information over the dataset
+T=rpart(V12~.,data=Ozone,control=rpart.control(minsplit=2,cp=0.0000001))	#Create the maximal tree
+#Take out rows which are missing the V12 value
+Y=Ozone$V12
+a=which(is.na(Y)==1)
+Ozon=Ozone[-a,]
+TT=rpart(V12~.,data=Ozon,control =rpart.control(minsplit=2,cp=0.0000001)) 	#Create a new maximal tree
+#Perform the 1-S rule and do the Final Selection
+selection <- function(TT){
+		pct=printcp(TT)
+		cverr=pct[,4]
+		wmcv=which(cverr==min(cverr))
+		s=pct[wmcv,4] + pct[wmcv,5]
+		s1=min(s)
+		s2=which(s==s1)
+		s3=s2[1]
+		s=s[s3]
+		a=1*(cverr<=s)
+		b=which(a==1)
+		b1=b[1]
+		cp=pct[b1,1]
+		selection=cp
+	}
+cp=selection(TT)
+#Prune the tree at the complexity founded
+TTsel=prune(TT,cp)
+#Perform the predictions
+predictions = predict(TTsel, Ozon)
+table(predictions)
+err.test = sum((predictions-Ozon$V12)**2/nrow(Ozon))
+err.test
+
+#Split the dataset in training set and test set and compute the new error
+n = nrow(Ozon)
+train=sample(n,floor(2*n/3),replace=F)
+OzonTrain=Ozon[train,]
+OzonTest= Ozon[-train,]
+TT = rpart(V12~.,data=OzonTrain,control =rpart.control(minsplit=2,cp=10^(-15)))
+cp=selection(TT)
+TTsel=prune(TT,cp)
+predictions = predict(TTsel, OzonTest)
+err.test = sum((predictions-OzonTest$V12)^2/nrow(OzonTest))
+err.test
+
+#Set to NA the value of the variable associated to the division on the root, and perform the prediction
+obs=OzonTest[1,]
+obs[10]=NA_real_
+predict(TTsel,newdata=obs)
+plot(TTsel)
+text(TTsel)
+
+
+#EXERCISE 2
+
+
+data(iris)
+n = nrow(iris)
+train=sample(n,floor(2*n/3),replace=F)
+irisTrain=iris[train,]
+irisTest= iris[-train,]
+TT = rpart(Species~.,data=irisTrain,control =rpart.control(minsplit=2,cp=10^(-15)))
+cp=selection(TT)
+TTsel=prune(TT,cp)
+predictions = predict(TTsel, irisTest, type="class")
+mc = table(irisTest$Species,predictions)
+err.test = 1- (mc[1,1]+mc[2,2])/sum(mc)
+err.test
+plot(TTsel)
+text(TTsel)
+#The curious thing is that if I calculate the error on the maximal Tree I obtain a low error on the test set
+#this could mean that the iris dataset allows very strong predictions
+
+
+#EXERCISE 3
+library(mlbench)	#Load mlbench package
+data(Ozone)			#Load the dataset
+p=ncol(Ozone)-1		
+library(randomForest)
+bag<- randomForest(V4~.,Ozone,mtry=p,na.action=na.omit)
+bag
+plot(bag)
+rf=randomForest(V4~.,Ozone,na.action=na.omit,replace=FALSE,sampsize=nrow(na.omit(Ozone)),mtry=p,ntree=10,maxnodes=15)
+

@@ -1,0 +1,86 @@
+﻿--> Create Treemax on a training set and evaluate the prediction error on a test set
+	spam=read.table("spam.txt",header=F,col.names=c("crl.tot","dollar","bang","money","n000","make","yesno"))
+	set.seed(1274)
+	n = nrow(spam)
+	k = floor(2*n/3)
+	train = sample(n,k)
+	spamTrain = spam[train,]
+	spamTest = spam[-train,]
+	TreeMax = rpart(yesno~.,data=spamTrain,control =rpart.control(minsplit=1,cp=0.0000001))
+	predictions = predict(TreeMax, spamTest, type="class")
+	mc = table(spamTest$yesno,predictions)
+	err.test = 1- (mc[1,1]+mc[2,2])/sum(mc)
+	err.test
+
+--> Cross Validation by Hand
+	v = 10
+	alea = runif(n)
+	rank = rank(alea)
+	tail = n%/%v
+	block = (rank-1)%/%tail+1
+	block[block==11]=10
+	block=as.factor(block)
+	err.cv = numeric(0)
+	for(k in 1:v){
+	  tree = rpart(yesno~.,data=spam[block!=k,],control=rpart.control(minsplit=1,cp=0.000001))
+	  pred = predict(tree,newdata=spam[block==k,],type="class")
+	  mc=table(spam$yesno[block==k],pred)
+	  err = 1- (mc[1,1]+mc[2,2])/sum(mc)
+	  err.cv = rbind(err.cv,err)
+	}
+	print(err.cv)
+
+
+--> 1-S rule: Final Selection on TreeMax
+	threshold=min(cptable[,4])[1]+cptable[which.min(cptable[,4]),5][1]
+	res=0
+	for (i in cptable[,4]){
+		if(i<threshold && i>res){
+			res=i
+		}
+	}
+	which(cptable[,4]==res)
+
+
+--> 1-S rule: Final Selection on Treemax ( Version with function ), and pruning of the tree
+	selection <- function(T){
+		pct=printcp(T)
+		cverr=pct[,4]
+		wmcv=which(cverr==min(cverr))
+		s=pct[wmcv,4] + pct[wmcv,5]
+		s1=min(s)
+		s2=which(s==s1)
+		s3=s2[1]
+		s=s[s3]
+		a=1*(cverr<=s)
+		b=which(a==1)
+		b1=b[1]
+		cp=pct[b1,1]
+		selection=cp
+	}
+	cp=selection(T)
+	Tsel=prune(T,cp)
+
+--> Plot several trees pruning the tree over time
+	cps=cptable[,1]
+	for(c in length(cps):2){
+	Tsel=prune(treemax,cps[c])
+	print(toString(c))
+	jpeg(c)
+	plot(Tsel)
+	dev.off()
+	}
+Se dovessi mostrare che l'algoritmo è instabile basterebbe cambiare un minimo l'albero, ad esempio creando un training set
+e vedremmo risultati completamente differenti.
+
+--> Missing Values
+	T=rpart(yesno~.,data=spam)
+	plot(T)
+	text(T)
+	summary(T)
+	If you have some missing value, you use the surrogate splits, which are the ones
+	more in agreement with the missing value.
+	
+	
+	
+ 

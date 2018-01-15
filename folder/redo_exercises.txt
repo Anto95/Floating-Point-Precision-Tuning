@@ -1,0 +1,68 @@
+#Exercise 1
+selection=function(T){
+	cptable=printcp(T)
+	indMin=which.min(cptable[,4]) #which.min select the index of the first element through the ones with the minimum value
+	stdv=cptable[indMin,5]
+	errth=cptable[indMin,4][1]+stdv
+	errsl=cptable[cptable[,4]<errth,4][1]
+	cp=cptable[cptable[,4]==errsl,1][1]
+	pr=c(indMin,errth,errsl,cp)
+	names(pr)=c("IndMin","ErrTh","ErrSel","CpSel")
+	print(pr)
+	selection=cp
+}
+constructBestTree=function(Ozone){
+	Tmax=rpart(V12~.,data=Ozone,control=rpart.control(minsplit=2,cp=1e-15))
+	cpprune=selection(Tmax)
+	Tsel=prune(Tmax,cpprune)
+	constructBestTree=Tsel
+}
+
+library(mlbench)
+library(rpart)
+data(Ozone)
+str(Ozone)
+Tsel=constructBestTree(Ozone)
+summary(Tsel)
+#Comments on the first tree
+Y=data$V12
+a=which(is.na(Y)==1)
+Ozon=Ozone[-a,]
+Tsel2=constructBestTree(Ozon)
+summary(Tsel2)
+plot(Tsel)
+plot(Tsel2)
+#Comments on the second tree
+n=nrow(Ozon)
+a=sample(n,2*n/3)
+train=Ozon[a,]
+test=Ozon[-a,]
+Tsel3=constructBestTree(train)
+predictions=predict(Tsel3,newdata=test)
+err=sum((predictions-test$V12)^2)/nrow(test)
+Ozon$V12[1]=NA
+strangePrediction=predict(Tsel3,newdata=Ozon[1,])
+
+#Exercise 2
+data(iris)
+n=nrow(iris)
+a=sample(n,2*n/3)
+train=iris[a,]
+test=iris[-a,]
+Tmax=rpart(Species~.,data=train,control=rpart.control(minsplit=2,cp=1e-15))
+cpprune=selection(Tmax)
+Tsel=prune(Tmax,cpprune)
+predictions=predict(Tsel,newdata=test,type="class")
+cfm=table(predictions,test$Species)
+acc=(cfm[1,1]+cfm[2,2])/sum(cfm)
+err.test=1-acc
+#plot(Tsel)
+#text(Tsel)
+
+Exercise3
+library(mlbench)	#Load mlbench package
+data(Ozone)			#Load the dataset
+p=ncol(Ozone)-1		
+library(randomForest)
+bag<- randomForest(V4~.,Ozone,mtry=p,na.action=na.omit)
+bag

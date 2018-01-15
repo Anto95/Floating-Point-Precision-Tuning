@@ -1,0 +1,165 @@
+-->	READ A DATASET FROM FILE
+getwd()
+setwd([path])
+x=read.table("ozone.txt",header=TRUE, col.names=c(1,2,3 ...)) 	#Read a txt file containing a dataset
+colnames(x)			#names of columns
+colnames(x)=c("primo", "secondo",...) #change the names of columns
+colnames(x)[2]="pippo"			  #change one column name
+
+-->	TO DOWNLOAD A DATASET(ex Ozone)
+library("mlbench")	#Load a package
+data(Ozone)			#Load a dataset
+
+-->	TO ANALYZE A DATASET (ex Ozone)
+str(Ozone)			#Give a description of the dataset
+help(Ozone) 		#Open the R documentation
+summary(Ozone)		#Give basic statistics of the dataset
+head(Ozone) 		#Give the first lines of a dataset
+
+-->	INDEXING
+spam$yesno			#This has no dimension
+spam["yesno"] 		#This is 4601x1
+spam[7]				#This is 4601x1
+spam[7,]			#This is 1x7
+x[1:5,1:3]
+x[c(1,3,6)]
+x[-1]
+x[-c(1,3,5,6)]
+block[block==10]	#Filter values of vector block
+
+--> USE OF RPART (on spam dataset)
+library("rpart")
+T=rpart(yesno~.,data=spam) 											#Construct a tree to classify yesno thanks to all the predictors
+T=rpart(yesno~dollar+crl.tot,data=spam)								#Use only dollar and crl.tot as predictors
+T=rpart(yesno~.,data=spam, control=c(minsplit=1,cp=0.00000000001)) 	#Set minsplit to 1 and cp to a low value to have the maximal tree
+T											#Show the tree
+plot(T)										#Plot the tree
+text(T)										#Write labels on splits
+rpart.plot(T)								#(need download and load) nice plot of the tree
+prp(T)										#Extend rpart.plot
+printcp(T)									#Prints a table of optimal prunings based on a complexity parameter
+summary(T,cp=0.01)							#Prints table of printcp, varible importance, and information about splits with cp>0.01
+predictions=predict(T,spam,type="class")	#Predictions using the rpart object (if not specified, regression)
+cm=table(spam$yesno,predictions)				#Get confusion matrix
+err.test = 1- (cm[1,1]+cm[2,2])/sum(cm)
+
+
+
+
+--> OTHERS
+floor(1.56) 			#Truncate a decimal number
+sample(5,2)				#2 samples from 1 to 5
+sample(c(1,2,3,4,5),2)	#2 sapmles from 1 to 5
+runif(n)				#Vector of uniform probabilities between 0 and 1 ( length = n )
+rank(p)					#Vector of indexes indicating the increasing order of vector p
+%/%						#Numerical division
+%%						#Module
+for(k in 1:v){}			#For loop
+rbind(a,b)				#Concatenate a and b
+na.omit(dataset) 		#Eliminate samples with NA
+
+
+#EXERCISES
+--> Create Treemax on a training set and evaluate the prediction error on a test set
+	spam=read.table("spam.txt",header=F,col.names=c("crl.tot","dollar","bang","money","n000","make","yesno"))
+	set.seed(1274)
+	n = nrow(spam)
+	k = floor(2*n/3)
+	train = sample(n,k)
+	spamTrain = spam[train,]
+	spamTest = spam[-train,]
+	TreeMax = rpart(yesno~.,data=spamTrain,control =rpart.control(minsplit=1,cp=0.0000001))
+	predictions = predict(TreeMax, spamTest, type="class")
+	mc = table(spamTest$yesno,predictions)
+	err.test = 1- (mc[1,1]+mc[2,2])/sum(mc)
+	err.test
+	
+--> Cross Validation by Hand (V1)
+	v = 10
+	alea = runif(n)
+	rank = rank(alea)
+	tail = n%/%v
+	block = (rank-1)%/%tail+1
+	block[block==11]=10
+	block=as.factor(block)
+	err.cv = numeric(0)
+	for(k in 1:v){
+	  tree = rpart(yesno~.,data=spam[block!=k,],control=rpart.control(minsplit=1,cp=0.000001))
+	  pred = predict(tree,newdata=spam[block==k,],type="class")
+	  mc=table(spam$yesno[block==k],pred)
+	  err = 1- (mc[1,1]+mc[2,2])/sum(mc)
+	  err.cv = rbind(err.cv,err)
+	}
+	print(err.cv)
+
+--> Cross Validation by Hand (V2)
+	v = 10
+	alea = runif(n)
+	rank = rank(alea)
+	tail = n%/%v
+	block = (rank-1)%/%tail+1
+	block[block==11]=10
+	block=as.factor(block)
+	err.cv = numeric(0)
+	err.cv=numeric(0)
+	for(k in 1:v){
+		train=block!=k
+		spamTrain=spam[train,]
+		spamTest=spam[!train,]
+		TMax=rpart(yesno~.,data=spamTrain,control=rpart.control(minsplit=1,cp=0.000001))
+		predictions=predict(TMax,spamTest,type="class")
+		cm=table(spamTest$yesno,predictions)
+		err=1-(cm[1,1]+cm[2,2])/sum(cm)
+		err.cv=rbind(err.cv,err)
+	}
+	
+-- Final Selection (V1)
+selection1 <- function(T){
+		pct=printcp(T)
+		cverr=pct[,4]
+		wmcv=which(cverr==min(cverr))
+		s=pct[wmcv,4] + pct[wmcv,5]
+		s1=min(s)
+		s2=which(s==s1)
+		s3=s2[1]
+		s=s[s3]
+		a=1*(cverr<=s)
+		b=which(a==1)
+		b1=b[1]
+		cp=pct[b1,1]
+		selection1=cp
+	}
+	cp=selection1(T)
+	Tsel=prune(T,cp)
+-- Final Selection (V2)
+	selection2=function(T){
+		 cptable=printcp(T)
+		 cverr=cptable[,4]
+		 wmcv=which.min(cverr)
+		 s=cptable[wmcv,4]+cptable[wmcv,5]
+		 s=min(s)[1]
+		 print(s)
+		 a=cverr[which(cverr<=s)]
+		 b=which.max(a)
+		 cp=cptable[b,1]
+		 selection2=cp
+	 }
+	cp=selection2(T)
+	Tsel=prune(T,cp)
+	
+-- Final Selection (V3)
+	selection3=function(T){
+	threshold=min(cptable[,4])[1]+cptable[which.min(cptable[,4]),5][1]
+	res=0
+	for (i in cptable[,4]){
+		if(i<threshold && i>res){
+			res=i
+		}
+	}
+	a=which(cptable[,4]==res)
+	print(a)
+	cp=cptable[a,1]
+	selection3=cp
+	}
+	cp=selection3(T)
+	Tsel=prune(T,cp)
