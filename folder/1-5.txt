@@ -1,0 +1,111 @@
+*/Exercise 1;
+libname tp1 "C:\Users\Antonio\Documents\Universita\Magistrale\Secondo Anno\Primo Semestre\Primo periodo\CART\SAS\Antonio\2";
+proc univariate data=tp1.grades noprint;
+histogram Examgrade1 /midpoints= 35 45 55 65 75 85 95 vaxislabel='Frequency';
+inset n="No Students" mean="Mean Grade" min="Lowest Grade" max="Highest Grade"/header="Summary Statistics" position=ne format=3.;
+title "Grade Distribution for the First Chemistry Exam";
+run;
+*/Exercise 2;
+ods select Histogram ParameterEstimates GoodnessOfFit FitQuantiles;
+proc univariate data=tp1.Trans noprint;
+histogram Thick / normal(color=yellow w=3 percents=20 40 60 80 midpercents) cfill=blue cframe=ligr;
+inset n normal(ksdpval) / position=ne format=6.3 header="Summary";
+title "Exercise 22";
+run;
+
+*/Exercise 3;
+data tp1.Temperatures;
+input temperature height;
+CARDS;
+-5 1
+-4 5
+-3 4
+-2 7
+-1 10
+0 8
+1 9
+2 13
+3 14
+4 13
+5 18
+;
+run;
+
+proc reg data=tp1.Temperatures;
+model height=temperature /cli clm clb p r;
+output out=tp1.sor r=residuals;
+title "Exercise 3";
+run;
+
+proc univariate data=tp1.Sor noprint;
+histogram residus / normal(percents= 20 40 60 80);
+inset n normal(ksdpval);
+title "verify";
+
+
+
+*\ EXERCISE -4 \*;
+ data fitness; 
+      input Age Weight Oxygen RunTime RestPulse RunPulse MaxPulse @@; 
+      datalines; 
+   44 89.47 44.609 11.37 62 178 182   40 75.07 45.313 10.07 62 185 185 
+   44 85.84 54.297  8.65 45 156 168   42 68.15 59.571  8.17 40 166 172 
+   38 89.02 49.874  9.22 55 178 180   47 77.45 44.811 11.63 58 176 176 
+   40 75.98 45.681 11.95 70 176 180   43 81.19 49.091 10.85 64 162 170 
+   44 81.42 39.442 13.08 63 174 176   38 81.87 60.055  8.63 48 170 186 
+   44 73.03 50.541 10.13 45 168 168   45 87.66 37.388 14.03 56 186 192 
+   45 66.45 44.754 11.12 51 176 176   47 79.15 47.273 10.60 47 162 164 
+   54 83.12 51.855 10.33 50 166 170   49 81.42 49.156  8.95 44 180 185 
+   51 69.63 40.836 10.95 57 168 172   51 77.91 46.672 10.00 48 162 168 
+   48 91.63 46.774 10.25 48 162 164   49 73.37 50.388 10.08 67 168 168 
+   57 73.37 39.407 12.63 58 174 176   54 79.38 46.080 11.17 62 156 165 
+   52 76.32 45.441  9.63 48 164 166   50 70.87 54.625  8.92 48 146 155 
+   51 67.25 45.118 11.08 48 172 172   54 91.63 39.203 12.88 44 168 172 
+   51 73.71 45.790 10.47 59 186 188   57 59.08 50.545  9.93 49 148 155 
+   49 76.32 48.673  9.40 56 186 188   48 61.24 47.920 11.50 52 170 176 
+   52 82.78 47.467 10.50 53 170 172 
+   ; 
+   run;
+
+
+   proc reg data=fitness;
+      model Oxygen=Age Weight RunTime RunPulse RestPulse MaxPulse
+            / selection=forward;
+      model Oxygen=Age Weight RunTime RunPulse RestPulse MaxPulse
+            / selection=backward;
+      model Oxygen=Age Weight RunTime RunPulse RestPulse MaxPulse
+            / selection=maxr;
+	run;
+
+
+	*/Exercise 5;
+	data tp1.DrugTest;
+   input Drug $ PreTreatment PostTreatment @@;
+   datalines;
+A 11  6   A  8  0   A  5  2   A 14  8   A 19 11
+A  6  4   A 10 13   A  6  1   A 11  8   A  3  0
+D  6  0   D  6  2   D  7  3   D  8  1   D 18 18
+D  8  4   D 19 14   D  8  9   D  5  1   D 15  9
+F 16 13   F 13 10   F 11 18   F  9  5   F 21 23
+F 16 12   F 12  5   F 12 16   F  7  1   F 12 20
+;
+run;
+
+proc glm data=tp1.Drugtest;
+   class Drug;
+   model PostTreatment = Drug  / solution;
+   lsmeans Drug / stderr pdiff cov out=adjmeans;
+title "ANALISYS";
+run;
+*/This measures the difference between arithmetic means of posttreatment scores for different drugs;
+*/This measures the differences between Drug LS-means, controlling for the covariate;
+
+proc print data=adjmeans;
+run;
+/*to check the influence, compare the means and the range of the categories(if values are different, then they have an influence) and check the pvalue of the ftest is smaller then 0.05. */
+;
+
+
+
+   run;
+run;
